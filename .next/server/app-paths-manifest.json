@@ -1,0 +1,5 @@
+{
+  "/character/common/page": "app/character/common/page.js",
+  "/kartbody/[id]/page": "app/kartbody/[id]/page.js",
+  "/kartbody/[Id]/page": "app/kartbody/[Id]/page.js"
+}
