@@ -46,7 +46,7 @@ export default function NotFoundCatchAll() {
 ```
 요렇게 해주니까 페이지가 더 이상 새로고침 되지 않는다! 왜 이렇게 해야 잘 되는지...는 더 검색해봐야겠다
 
-<br/
+<br/>
 
 ## 3. 다크모드 구현 시 화면 깜빡임
 
@@ -196,7 +196,10 @@ https://react.dev/reference/react-dom/hydrate#suppressing-unavoidable-hydration-
 
 <br/>
 고민 좀 해봐야겠다.
- 
 
+<br/>
+
+## 4. 페이지 타이틀 및 메타태그 설정
+https://velog.io/@sky/Next.js-13%EB%B2%84%EC%A0%84-app%EC%97%90%EC%84%9C-metaTag-title-%EC%84%A4%EC%A0%95%ED%95%98%EA%B8%B0
 
 
