@@ -202,4 +202,37 @@ https://react.dev/reference/react-dom/hydrate#suppressing-unavoidable-hydration-
 ## 4. 페이지 타이틀 및 메타태그 설정
 https://velog.io/@sky/Next.js-13%EB%B2%84%EC%A0%84-app%EC%97%90%EC%84%9C-metaTag-title-%EC%84%A4%EC%A0%95%ED%95%98%EA%B8%B0
 
+<br/>
 
+## 5. 네이버 검색 api cors 우회요청
+
+```js
+const url = `https://openapi.naver.com/v1/search/news.xml?`
+```
+네이버 검색 api 호출 시 url을 위와같이 작성하면 cors 오류가 발생한다. <br/>
+네이버에서 클라이언트의 요청을 허용하고 있지 않기 때문에, **프록시** 를 사용하여 우회요청 해야한다.
+
+```js
+//next.config.js
+async rewrites() {
+    return [{
+        source: "/api/:path*",
+        destination: "https://openapi.naver.com/:path*"
+    }, ];
+}
+```
+next config에서 `rewrites()` 를 추가해준다. <br/>
+`rewrites()` 는 request url의 패턴을 확인하고 일치하게되면 페이지 이동이 아닌 매핑주소로 요청을 하게된다. <br/>
+즉, 요청 주소와 실제로 요청하는 주소가 분리되게 되어 민감한 데이터 (api키 같은 것) 들을 숨길 수도 있다. <br/>
+
+내 상황은 get 요청에서 api 키를 숨기거나 하는 용도는 아니기 때문에 약간 다르다. <br/>
+네이버 api 자체가 서버요청만 허용하기 때문에, `/api/:path*` 경로로 호출하면 destination에 설정 된 경로로 요청을 하게 된다. 
+(여기서 `:path*` 는 어떠한 문자열도 올 수 있다는 뜻이다. `/abc/:path*` 면 `/abc/123` , `/abc/aaa` 등... 처럼 다 올 수 있게된다.)
+
+<br/>
+
+```js
+const url = `/api/v1/search/news.xml?`
+```
+destination에 기본 api url 적어준 다음에, 호출할 때는 source에 적힌 url대로 (/api로 시작하는) 설정해주면 된다. <br/>
+`/:path*` 로 설정하면 모든 url을 다 감지하기 때문에 사이트 url이 바뀌었을 때 이상하게 동작될 수 있다.
