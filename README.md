@@ -318,3 +318,116 @@ const fetchVideos = useCallback(async () => {
 <br/>
 
 이번 이슈를 해결 해보면서 동적 라우팅이나 쿼리스트링은 어떤 상황일 때 처리하는지 알게되었고, 정답은 다 개발자 도구에 있다는 것! 을 알았다. 😊😊
+
+<br/>
+
+## 7. &lt;Link&gt; 클릭 시 스크롤이 최상단으로 이동하는 문제
+
+![image](https://github.com/Plush777/next-issue/assets/87457620/3f971761-2d98-47e2-be9d-f90ea46d7bbc)
+
+위 커스텀 셀렉트 박스에서 아이템들을 `li > a` 형태로 렌더링을 했다. <br/>
+작동은 잘되나, 클릭 했을 때 스크롤이 최상단으로 가는 문제가 생겼다. 별거 아닌거 같지만 사용자 입장에선 불편할 것 같아서 없애는걸 찾아봤는데... <br/>
+해결법이 너무 간단했다.
+
+```js
+<Link scroll={false} href={href}>{text}</Link>
+```
+https://nextjs.org/docs/pages/api-reference/components/link#scroll
+
+클릭 했을 때 최상단으로 이동하지 않으려면 Link 컴포넌트에 scroll 옵션을 false로 주면 된다 🥲 <br/>
+(기본 값은 true)
+
+<br/>
+
+## 8. 새로고침 시 Swiper 움직임 문제
+
+![image](https://github.com/Plush777/next-issue/assets/87457620/2a134a5c-27f4-41e1-98a9-4ef91a68c384)
+
+서브 페이지에 위와 같이 탭 ui가 있다. 이걸 처음에는 ul li로 구성했다가, Swiper로 바꿔서 구현했다. <br/>
+이유는, 모바일처럼 화면이 줄어들면 탭 전체에 스크롤이 생기게 되는데, 사용자가 스크롤을 넘기고 탭을 클릭했을 때 <br/>
+누른 탭으로 스크롤 위치가 이동되는 동작을 구현하고 싶어서이다. <br/>
+
+구현한다면 Swiper 없이도 할 수 있겠으나, Swiper로 하는게 제일 간단해보여서 선택했다.
+
+
+![ezgif com-video-to-gif](https://github.com/Plush777/next-issue/assets/87457620/defd98f3-9011-4e8e-9799-0111ab596509)
+
+구현은 됐으나, 위와 같은 문제가 생겼다. <br/>
+스크롤을 땡겨서 탭을 누른 후 페이지가 로드되거나 하면 순간적으로 스크롤 위치가 이동되는 현상이 있었다. 
+
+```js
+useLayoutEffect(() => {
+    if(swiper){
+        swiper.slideTo(getTabActiveIndex);
+    }
+}, [swiper]);
+```
+해당 문제는 위 코드때문인 것으로 보인다. 렌더링 이전에 미리 swiper slide 위치를 누른 탭 위치로 이동시키는 코드이다.
+
+<br/>
+
+해결은 다음과 같이 했다.
+
+![ezgif com-video-to-gif (4)](https://github.com/Plush777/next-issue/assets/87457620/9a3c1fe2-22b4-47fe-a31f-d508ab1a2ea6)
+
+swiper-wrapper 자체에 트랜지션이 걸려있어서 저런 불필요한 움직임이 발생하는 것이다. <br/>
+(해당 트랜지션은 처음에 0초였다가 swiper 스크롤하고 끝날 때 0.3초로 변했다가 다시 0초로 바뀐다.)
+
+```js
+const [touchMove, setTouchMove] = useState(false);
+
+const handleTouchEnd = () => {
+    setTouchMove(true);
+
+    setTimeout(() => {
+        setTouchMove(false);
+    }, 300);
+}
+```
+swiper-wrapper의 트랜지션을 css 클래스로 제어할 것이기 때문에 state 하나 생성 하고, <br/>
+0.3초 뒤에 false가 되도록 해준다. 이렇게 해주면 처음엔 false, 해당 함수가 호출되면 true가 되었다가 0.3초 뒤에 다시 false가 된다. <br/>
+(굳이 0.3초인 이유는 해당 swiper-wrapper의 트랜지션이 0.3초로 설정되있기 때문)
+
+
+```js
+<SubTabstyled.TabListSwipe {...swiperParams} onSwiper={(swiper) => setSwiper(swiper)}
+onTouchEnd={handleTouchEnd} className={touchMove && 'touchMoveActive'}>
+    ...
+</SubTabstyled.TabListSwipe>
+```
+
+만들어둔 함수는 swiper-wrapper가 되는 컴포넌트에 onTouchEnd 이벤트 안에 넣어주고, className에는 touchMove state가 true일 때만 touchMoveActive 클래스를 추가하도록 조건을 넣어준다. <br/>
+여기서 onTouchEnd는 swiper 스크롤이 끝나는 시점에서 해당 함수를 호출하게 하는 이벤트이다.
+
+```css
+export const TabListSwipe = styled(Swiper)`
+    &.touchMoveActive{
+        .swiper-wrapper{
+            transition-duration: 300ms !important;
+        }
+    }
+
+    .swiper-wrapper{
+        transition-duration: 0ms !important;
+    }
+`;
+```
+마지막으로 css는 위와같이 작성해주면 끝이다! <br/><br/>
+
+1. 처음에 swiper-wrapper 트랜지션을 없앤다.
+2. swiper-wrapper 스크롤 후 끝나는 시점에 touchMoveActive 클래스를 추가하여 트랜지션을 추가한다.
+3. 위에서 만들었던 handleTouchEnd 함수에 의해 추가 된 클래스는 0.3초 뒤에 다시 제거되면서 트랜지션을 제거 시킨다.
+
+<br/>
+
+![ezgif com-video-to-gif (2)](https://github.com/Plush777/next-issue/assets/87457620/17d6c5f5-4924-4775-910f-5685e5f720bd)
+
+
+그냥 트랜지션만 없애주면 간단하게 해결되지 않을까란 생각도 해봤는데, <br/>
+새로고침 했을 때의 문제는 해결되나, 위처럼 스와이퍼를 스크롤 했을 때 움직임이 뚝뚝 끊기게 되서 상당히 부자연스럽게 되버린다.
+
+<br/>
+
+![ezgif com-video-to-gif (3)](https://github.com/Plush777/next-issue/assets/87457620/342c4c03-3f00-4d4f-a456-df4188b630fe)
+
+그래서 스와이퍼 스크롤이 끝나는 시점에 맞춰서 트랜지션을 제어해주면 위와같이 2개의 문제 모두 해결이 되었다 !!
